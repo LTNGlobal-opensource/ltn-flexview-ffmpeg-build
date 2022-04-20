@@ -70,6 +70,9 @@ if [ ! -d srt ]; then
 	    echo "Switching to branch [$SRT_BRANCH]..."
 	    git checkout $SRT_BRANCH
 	fi
+	export OPENSSL_ROOT_DIR=${DEP_BUILDROOT}
+	export OPENSSL_LIB_DIR=${DEP_BUILDROOT}/lib
+	export OPENSSL_INCLUDE_DIR=${DEP_BUILDROOT}/include
 	./configure --prefix=${DEP_BUILDROOT} --disable-shared
 	make -j4
 	make install
