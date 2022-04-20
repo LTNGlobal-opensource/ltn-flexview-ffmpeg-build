@@ -6,7 +6,7 @@ set -x
 set -e
 
 [ -z "$FFMPEG_REPO" ] && FFMPEG_REPO=git@github.com:LTNGlobal-opensource/FFmpeg-ltn.git
-[ -z "$FFMPEG_BRANCH" ] && FFMPEG_BRANCH=n4.4.1
+[ -z "$FFMPEG_BRANCH" ] && FFMPEG_BRANCH=n4.4.1-ltn-flexview1
 
 # Dependencies
 [ -z "$SRT_REPO" ] && SRT_REPO=https://github.com/Haivision/srt.git
