@@ -5,7 +5,7 @@ set -x
 # Bail out if any command fails...
 set -e
 
-[ -z "$FFMPEG_REPO" ] && FFMPEG_REPO=git@github.com:LTNGlobal-opensource/FFmpeg-ltn.git
+[ -z "$FFMPEG_REPO" ] && FFMPEG_REPO=https://github.com/LTNGlobal-opensource/FFmpeg-ltn.git
 [ -z "$FFMPEG_BRANCH" ] && FFMPEG_BRANCH=n4.4.1-ltn-flexview1
 
 # Dependencies
