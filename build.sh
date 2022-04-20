@@ -33,7 +33,14 @@ if [ `uname -s` = "Linux" ]; then
 else
     BUILD_NDI=0
     BUILD_OPENSSL=1
-    OPENSSL_PLATFORM=darwin64-x86_64-cc
+    if [ `uname -m` = "x86_64" ]; then
+	OPENSSL_PLATFORM=darwin64-x86_64-cc
+    elif [ `uname -m` = "arm64" ]; then
+	OPENSSL_PLATFORM=darwin64-arm64-cc
+    else
+	echo "Unknown machine architecture on MacOS.  Aborting!"
+	exit 1
+    fi
 fi
 NDI_SDK=$PWD/ndi_sdk
 
