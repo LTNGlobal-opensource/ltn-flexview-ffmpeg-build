@@ -126,8 +126,10 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
+EXTERNAL_DEPS="--disable-lzma --disable-libxcb --disable-xlib --disable-zlib --disable-lzma --disable-bzlib --disable-iconv $ENABLE_OPENSSL $ENABLE_NDI --enable-libsrt"
+
 cd ffmpeg-ltn
-./configure --disable-doc --enable-gpl --enable-libsrt $ENABLE_NDI --enable-nonfree --enable-debug $ENABLE_OPENSSL --pkg-config-flags=--static --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS" $LIBAVDEVICE_OPTS $FATE_IGNORE_OPTS
+./configure --disable-doc --enable-gpl --enable-nonfree --enable-debug $EXTERNAL_DEPS --pkg-config-flags=--static --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS" $LIBAVDEVICE_OPTS $FATE_IGNORE_OPTS
 
 make clean
 make -j8
