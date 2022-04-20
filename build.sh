@@ -24,10 +24,11 @@ X264_REPO=git@github.com:LTN-Global/x264.git
 X264_BRANCH=b00bcafe53a166b63a179a2f41470cd13b59f927
 
 DEP_BUILDROOT=$PWD/deps-buildroot
-export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig
+export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconfig
 
 if [ `uname -s` = "Linux" ]; then
-    BUILD_NDI=1
+    # Disable NDI build even on Linux because it isn't in newer releases
+    BUILD_NDI=0
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
 else
