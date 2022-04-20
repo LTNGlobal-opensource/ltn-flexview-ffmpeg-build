@@ -16,6 +16,9 @@ set -e
 [ -z "$FREETYPE2_BRANCH" ] && FREETYPE2_BRANCH=VER-2-9-1
 [ -z "$OPENSSL_REPO" ] && OPENSSL_REPO=https://github.com/openssl/openssl.git
 [ -z "$OPENSSL_BRANCH" ] && OPENSSL_BRANCH=OpenSSL_1_1_1n
+[ -z "$SDL2_REPO" ] && SDL2_REPO=https://github.com/libsdl-org/SDL.git
+[ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.7
+
 
 export PKGVERSION=`git describe --tags`
 
@@ -29,10 +32,12 @@ export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconf
 if [ `uname -s` = "Linux" ]; then
     # Disable NDI build even on Linux because it isn't in newer releases
     BUILD_NDI=0
+    BUILD_SDL2=0
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
 else
     BUILD_NDI=0
+    BUILD_SDL2=1
     BUILD_OPENSSL=1
     if [ `uname -m` = "x86_64" ]; then
 	OPENSSL_PLATFORM=darwin64-x86_64-cc
@@ -80,6 +85,20 @@ if [ ! -d srt ]; then
 	cd ..
 fi
 
+if [ $BUILD_SDL2 -eq 1 ]; then
+    if [ ! -d sdl2 ]; then
+	git clone $SDL2_REPO sdl2
+	cd sdl2
+	if [ "$SDL2_BRANCH" != "" ]; then
+	    echo "Switching to branch [$SDL2_BRANCH]..."
+	    git checkout $SDL2_BRANCH
+	fi
+	./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	make -j4
+	make install
+	cd ..
+    fi
+fi
 
 if [ $BUILD_NDI -eq 1 ]; then
 	if [ ! -f InstallNDISDK_v4_Linux.tar.gz ]; then
