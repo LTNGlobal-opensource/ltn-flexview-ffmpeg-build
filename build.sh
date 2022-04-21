@@ -17,7 +17,7 @@ set -e
 [ -z "$OPENSSL_REPO" ] && OPENSSL_REPO=https://github.com/openssl/openssl.git
 [ -z "$OPENSSL_BRANCH" ] && OPENSSL_BRANCH=OpenSSL_1_1_1n
 [ -z "$SDL2_REPO" ] && SDL2_REPO=https://github.com/libsdl-org/SDL.git
-[ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.7
+[ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.20
 
 
 export PKGVERSION=`git describe --tags`
