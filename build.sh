@@ -35,18 +35,19 @@ if [ `uname -s` = "Linux" ]; then
     BUILD_SDL2=0
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
-else
+elif [ `uname -s` = "Darwin" ]; then
+    # MacOS
     BUILD_NDI=0
     BUILD_SDL2=1
     BUILD_OPENSSL=1
-    if [ `uname -m` = "x86_64" ]; then
-	OPENSSL_PLATFORM=darwin64-x86_64-cc
-    elif [ `uname -m` = "arm64" ]; then
-	OPENSSL_PLATFORM=darwin64-arm64-cc
-    else
-	echo "Unknown machine architecture on MacOS.  Aborting!"
-	exit 1
-    fi
+    ARCH=`uname -m`
+    OPENSSL_PLATFORM="darwin64-$ARCH-cc -mmacosx-version-min=10.15"
+    SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
+    EXTRA_CFLAGS="-arch $ARCH -target $ARCH-apple-darwin10.15 -mmacosx-version-min=10.15 -I${SDK_PATH}/usr/include"
+    EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
+else
+    echo "Unsupported platform.  Cannot continue"
+    exit 1
 fi
 NDI_SDK=$PWD/ndi_sdk
 
@@ -79,7 +80,12 @@ if [ ! -d srt ]; then
 	export OPENSSL_ROOT_DIR=${DEP_BUILDROOT}
 	export OPENSSL_LIB_DIR=${DEP_BUILDROOT}/lib
 	export OPENSSL_INCLUDE_DIR=${DEP_BUILDROOT}/include
-	./configure --prefix=${DEP_BUILDROOT} --disable-shared
+
+	if [ `uname -s` = "Darwin" ]; then
+	    cmake -DCMAKE_C_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_CXX_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" -DCMAKE_INSTALL_PREFIX="${DEP_BUILDROOT}" -DENABLE_SHARED=0
+	else
+	    ./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	fi
 	make -j4
 	make install
 	cd ..
@@ -93,7 +99,7 @@ if [ $BUILD_SDL2 -eq 1 ]; then
 	    echo "Switching to branch [$SDL2_BRANCH]..."
 	    git checkout $SDL2_BRANCH
 	fi
-	./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	CFLAGS="${EXTRA_CFLAGS}" ./configure --prefix=${DEP_BUILDROOT} --disable-shared
 	make -j4
 	make install
 	cd ..
