@@ -131,8 +131,8 @@ LIBAVDEVICE_OPTS=""
 # Tests which are known to fail FATE in our current build (which we don't care about)
 FATE_IGNORE_OPTS="--ignore-tests=rgb24-mkv"
 
-EXTRA_CFLAGS="-I$BMSDK_DIR -I$DEP_BUILDROOT/include"
-EXTRA_LDFLAGS="-L$DEP_BUILDROOT/lib"
+EXTRA_CFLAGS="$EXTRA_CFLAGS -I$DEP_BUILDROOT/include"
+EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$DEP_BUILDROOT/lib"
 
 if [ $BUILD_NDI -eq 1 ]; then
     ENABLE_NDI="--enable-libndi_newtek"
