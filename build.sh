@@ -98,11 +98,13 @@ if [ ! -d srt ]; then
 		  -DENABLE_APPS=OFF \
 		  -DENABLE_RELATIVE_LIBPATH=ON \
 		  -DUSE_ENCLIB=openssl .
+	    cmake --build .
+	    cmake --install . --prefix ${DEP_BUILDROOT}
 	else
 	    ./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	    make -j4
+	    make install
 	fi
-	cmake --build .
-	cmake --install . --prefix ${DEP_BUILDROOT}
 	cd ..
 fi
 
