@@ -28,6 +28,7 @@ X264_BRANCH=b00bcafe53a166b63a179a2f41470cd13b59f927
 
 DEP_BUILDROOT=$PWD/deps-buildroot
 export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconfig
+export PKG_CONFIG_LIBDIR=$DEP_BUILDROOT/lib/pkgconfig
 
 if [ `uname -s` = "Linux" ]; then
     # Disable NDI build even on Linux because it isn't in newer releases
@@ -45,6 +46,11 @@ elif [ `uname -s` = "Darwin" ]; then
     SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
     EXTRA_CFLAGS="-arch $ARCH -target $ARCH-apple-darwin10.15 -mmacosx-version-min=10.15 -I${SDK_PATH}/usr/include"
     EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
+elif [ `uname -o` = "Msys" ]; then
+    BUILD_NDI=0
+    BUILD_SDL2=1
+    BUILD_OPENSSL=1
+    OPENSSL_PLATFORM=mingw64
 else
     echo "Unsupported platform.  Cannot continue"
     exit 1
@@ -65,7 +71,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
 
 	./Configure no-shared --prefix=${DEP_BUILDROOT} ${OPENSSL_PLATFORM}
 	make -j4
-	make install
+	make install_sw
 	cd ..
     fi
 fi
@@ -83,11 +89,20 @@ if [ ! -d srt ]; then
 
 	if [ `uname -s` = "Darwin" ]; then
 	    cmake -DCMAKE_C_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_CXX_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" -DCMAKE_INSTALL_PREFIX="${DEP_BUILDROOT}" -DENABLE_SHARED=0
+	elif [ `uname -o` = "Msys" ]; then
+	    cmake -GNinja \
+		  -DCMAKE_INSTALL_PREFIX="${DEP_BUILDROOT}" \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DENABLE_SHARED=OFF \
+		  -DENABLE_STATIC=ON \
+		  -DENABLE_APPS=OFF \
+		  -DENABLE_RELATIVE_LIBPATH=ON \
+		  -DUSE_ENCLIB=openssl .
 	else
 	    ./configure --prefix=${DEP_BUILDROOT} --disable-shared
 	fi
-	make -j4
-	make install
+	cmake --build .
+	cmake --install . --prefix ${DEP_BUILDROOT}
 	cd ..
 fi
 
@@ -99,10 +114,11 @@ if [ $BUILD_SDL2 -eq 1 ]; then
 	    echo "Switching to branch [$SDL2_BRANCH]..."
 	    git checkout $SDL2_BRANCH
 	fi
-	CFLAGS="${EXTRA_CFLAGS}" ./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	mkdir build && cd build
+	CFLAGS="${EXTRA_CFLAGS}" ../configure --prefix=${DEP_BUILDROOT} --disable-shared
 	make -j4
 	make install
-	cd ..
+	cd ../..
     fi
 fi
 
