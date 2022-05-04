@@ -122,6 +122,7 @@ if [ $BUILD_SDL2 -eq 1 ]; then
 	make install
 	cd ../..
     fi
+    ENABLE_SDL2="--enable-sdl2"
 fi
 
 if [ $BUILD_NDI -eq 1 ]; then
@@ -150,7 +151,7 @@ fi
 
 # Make sure we don't end up with a bunch of extra deps for stuff like X11, ALSA, etc...
 # Note: lavfi is needed for FATE testing, even though we don't need it in production deployment
-LIBAVDEVICE_OPTS=""
+LIBAVDEVICE_OPTS="--disable-devices"
 
 # Tests which are known to fail FATE in our current build (which we don't care about)
 FATE_IGNORE_OPTS="--ignore-tests=rgb24-mkv"
@@ -169,7 +170,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-lzma --disable-libxcb --disable-xlib --disable-zlib --disable-lzma --disable-bzlib --disable-iconv $ENABLE_OPENSSL $ENABLE_NDI --enable-libsrt"
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 --enable-libsrt"
 
 if [ `uname -o` = "Msys" ]; then
     # Intel hardware acceleration
@@ -193,6 +194,8 @@ if [ `uname -o` = "Msys" ]; then
 	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
     fi
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-amf"
+elif [ `uname -s` = "Darwin" ]; then
+    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-videotoolbox --enable-audiotoolbox"
 fi
 
 cd ffmpeg-ltn
