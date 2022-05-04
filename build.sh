@@ -171,6 +171,30 @@ fi
 
 EXTERNAL_DEPS="--disable-lzma --disable-libxcb --disable-xlib --disable-zlib --disable-lzma --disable-bzlib --disable-iconv $ENABLE_OPENSSL $ENABLE_NDI --enable-libsrt"
 
+if [ `uname -o` = "Msys" ]; then
+    # Intel hardware acceleration
+    if [ ! -d mfx_dispatch ] ; then
+	mkdir -p $DEP_BUILDROOT/include/mfx
+	mkdir -p $DEP_BUILDROOT/lib
+	git clone https://github.com/lu-zero/mfx_dispatch.git
+	cd mfx_dispatch/
+	autoreconf -i
+	./configure --prefix=$DEP_BUILDROOT
+	make -j4
+	make install
+	cd ..
+    fi
+    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-libmfx"
+
+    # AMD hardware acceleration
+    if [ ! -d AMF ] ; then
+	git clone  https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+	mkdir -p ${DEP_BUILDROOT}/include/AMF
+	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
+    fi
+    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-amf"
+fi
+
 cd ffmpeg-ltn
 ./configure --disable-doc --enable-gpl --enable-nonfree --enable-debug $EXTERNAL_DEPS --pkg-config-flags=--static --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS" $LIBAVDEVICE_OPTS $FATE_IGNORE_OPTS
 
