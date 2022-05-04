@@ -22,9 +22,9 @@ set -e
 
 export PKGVERSION=`git describe --tags`
 
-# Master, as of 2018-01-05
-X264_REPO=git@github.com:LTN-Global/x264.git
-X264_BRANCH=b00bcafe53a166b63a179a2f41470cd13b59f927
+# Master, as of 2022-05-04
+X264_REPO=https://github.com/mirror/x264.git
+X264_BRANCH=bfc87b7a330f75f5c9a21e56081e4b20344f139e
 
 DEP_BUILDROOT=$PWD/deps-buildroot
 export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconfig
@@ -35,6 +35,7 @@ if [ `uname -s` = "Linux" ]; then
     # Disable NDI build even on Linux because it isn't in newer releases
     BUILD_NDI=0
     BUILD_SDL2=0
+    BUILD_X264=1
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
 elif [ `uname -s` = "Darwin" ]; then
@@ -42,6 +43,7 @@ elif [ `uname -s` = "Darwin" ]; then
     # MacOS
     BUILD_NDI=0
     BUILD_SDL2=1
+    BUILD_X264=0
     BUILD_OPENSSL=1
     ARCH=`uname -m`
     OPENSSL_PLATFORM="darwin64-$ARCH-cc -mmacosx-version-min=10.15"
@@ -52,6 +54,7 @@ elif [ `uname -o` = "Msys" ]; then
     PLATFORM=windows
     BUILD_NDI=0
     BUILD_SDL2=1
+    BUILD_X264=0
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=mingw64
 else
@@ -77,6 +80,22 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
 	make install_sw
 	cd ..
     fi
+fi
+
+if [ $BUILD_X264 -eq 1 ]; then
+    if [ ! -d libx264 ]; then
+	git clone $X264_REPO libx264
+	cd libx264
+	if [ "$X264_BRANCH" != "" ]; then
+	    echo "Switching to branch [$X264_BRANCH]..."
+	    git checkout $X264_BRANCH
+	fi
+	./configure --enable-static --disable-cli --prefix=${DEP_BUILDROOT} --disable-lavf --disable-swscale --disable-opencl
+	make -j4
+	make install
+	cd ..
+    fi
+    ENABLE_X264="--enable-libx264"
 fi
 
 if [ ! -d srt ]; then
@@ -175,7 +194,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 --enable-libsrt"
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 --enable-libsrt"
 
 if [ $PLATFORM = "windows" ]; then
     # Intel hardware acceleration
