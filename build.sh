@@ -31,12 +31,14 @@ export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconf
 export PKG_CONFIG_LIBDIR=$DEP_BUILDROOT/lib/pkgconfig
 
 if [ `uname -s` = "Linux" ]; then
+    PLATFORM=linux
     # Disable NDI build even on Linux because it isn't in newer releases
     BUILD_NDI=0
     BUILD_SDL2=0
     BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
 elif [ `uname -s` = "Darwin" ]; then
+    PLATFORM=macos
     # MacOS
     BUILD_NDI=0
     BUILD_SDL2=1
@@ -47,6 +49,7 @@ elif [ `uname -s` = "Darwin" ]; then
     EXTRA_CFLAGS="-arch $ARCH -target $ARCH-apple-darwin10.15 -mmacosx-version-min=10.15 -I${SDK_PATH}/usr/include"
     EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
 elif [ `uname -o` = "Msys" ]; then
+    PLATFORM=windows
     BUILD_NDI=0
     BUILD_SDL2=1
     BUILD_OPENSSL=1
@@ -87,9 +90,11 @@ if [ ! -d srt ]; then
 	export OPENSSL_LIB_DIR=${DEP_BUILDROOT}/lib
 	export OPENSSL_INCLUDE_DIR=${DEP_BUILDROOT}/include
 
-	if [ `uname -s` = "Darwin" ]; then
+	if [ $PLATFORM = "macos" ]; then
 	    cmake -DCMAKE_C_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_CXX_FLAGS="${EXTRA_CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}" -DCMAKE_INSTALL_PREFIX="${DEP_BUILDROOT}" -DENABLE_SHARED=0
-	elif [ `uname -o` = "Msys" ]; then
+	    make -j4
+	    make install
+	elif [ $PLATFORM = "windows" ]; then
 	    cmake -GNinja \
 		  -DCMAKE_INSTALL_PREFIX="${DEP_BUILDROOT}" \
 		  -DCMAKE_BUILD_TYPE=Release \
@@ -172,7 +177,7 @@ fi
 
 EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 --enable-libsrt"
 
-if [ `uname -o` = "Msys" ]; then
+if [ $PLATFORM = "windows" ]; then
     # Intel hardware acceleration
     if [ ! -d mfx_dispatch ] ; then
 	mkdir -p $DEP_BUILDROOT/include/mfx
@@ -194,7 +199,7 @@ if [ `uname -o` = "Msys" ]; then
 	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
     fi
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-amf"
-elif [ `uname -s` = "Darwin" ]; then
+elif [ $PLATFORM = "macos" ]; then
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-videotoolbox --enable-audiotoolbox"
 fi
 
