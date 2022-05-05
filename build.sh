@@ -65,6 +65,7 @@ elif [ `uname -o` = "Msys" ]; then
     PLATFORM=windows
     BUILD_SRT=1
     BUILD_SDL2=1
+    BUILD_X264=1
     BUILD_AMF=1
     BUILD_MFX=1
     BUILD_OPENSSL=1
