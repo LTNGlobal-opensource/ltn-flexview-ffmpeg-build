@@ -37,6 +37,7 @@ if [ `uname -s` = "Linux" ]; then
     BUILD_SDL2=0
     BUILD_X264=1
     BUILD_OPENSSL=1
+    BUILD_NVENC=1
     OPENSSL_PLATFORM=linux-x86_64
 elif [ `uname -s` = "Darwin" ]; then
     PLATFORM=macos
@@ -45,6 +46,7 @@ elif [ `uname -s` = "Darwin" ]; then
     BUILD_SDL2=1
     BUILD_X264=0
     BUILD_OPENSSL=1
+    BUILD_NVENC=0
     ARCH=`uname -m`
     OPENSSL_PLATFORM="darwin64-$ARCH-cc -mmacosx-version-min=10.15"
     SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
@@ -56,6 +58,7 @@ elif [ `uname -o` = "Msys" ]; then
     BUILD_SDL2=1
     BUILD_X264=0
     BUILD_OPENSSL=1
+    BUILD_NVENC=0
     OPENSSL_PLATFORM=mingw64
 else
     echo "Unsupported platform.  Cannot continue"
@@ -162,6 +165,16 @@ if [ $BUILD_NDI -eq 1 ]; then
 	fi
 fi
 
+if [ $BUILD_NVENC -eq 1 ]; then
+    if [ ! -d nv-codec-headers ]; then
+	git -c http.sslVerify=false clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+	cd nv-codec-headers
+	make install PREFIX=$DEP_BUILDROOT
+	cd ..
+    fi
+    ENABLE_NVENC="--enable-ffnvcodec --enable-nvenc --enable-nvdec"
+fi
+
 # Clone ffmpeg
 if [ ! -d ffmpeg-ltn ]; then
 	git clone $FFMPEG_REPO ffmpeg-ltn
@@ -194,7 +207,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 --enable-libsrt"
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC --enable-libsrt"
 
 if [ $PLATFORM = "windows" ]; then
     # Intel hardware acceleration
