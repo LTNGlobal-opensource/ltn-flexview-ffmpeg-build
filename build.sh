@@ -18,7 +18,10 @@ set -e
 [ -z "$OPENSSL_BRANCH" ] && OPENSSL_BRANCH=OpenSSL_1_1_1n
 [ -z "$SDL2_REPO" ] && SDL2_REPO=https://github.com/libsdl-org/SDL.git
 [ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.20
-
+[ -z "$NVENC_REPO" ] && NVENC_REPO=https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+[ -z "$NVENC_BRANCH" ] && NVENC_BRANCH=n11.1.5.1
+[ -z "$AMF_REPO" ] && AMF_REPO=https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+[ -z "$AMF_BRANCH" ] && AMF_BRANCH=2828ecb3447fe22e719d62cc5717f651217a7eba
 
 export PKGVERSION=`git describe --tags`
 
@@ -30,23 +33,28 @@ DEP_BUILDROOT=$PWD/deps-buildroot
 export PKG_CONFIG_PATH=$DEP_BUILDROOT/lib/pkgconfig:$DEP_BUILDROOT/lib64/pkgconfig
 export PKG_CONFIG_LIBDIR=$DEP_BUILDROOT/lib/pkgconfig
 
+# Defaults
+BUILD_NDI=0
+BUILD_SRT=0
+BUILD_SDL2=0
+BUILD_X264=0
+BUILD_OPENSSL=0
+BUILD_NVENC=0
+BUILD_AMF=0
+BUILD_MFX=0
+
 if [ `uname -s` = "Linux" ]; then
     PLATFORM=linux
-    # Disable NDI build even on Linux because it isn't in newer releases
-    BUILD_NDI=0
-    BUILD_SDL2=0
+    BUILD_SRT=1
     BUILD_X264=1
-    BUILD_OPENSSL=1
     BUILD_NVENC=1
+    BUILD_OPENSSL=1
     OPENSSL_PLATFORM=linux-x86_64
 elif [ `uname -s` = "Darwin" ]; then
     PLATFORM=macos
-    # MacOS
-    BUILD_NDI=0
+    BUILD_SRT=1
     BUILD_SDL2=1
-    BUILD_X264=0
     BUILD_OPENSSL=1
-    BUILD_NVENC=0
     ARCH=`uname -m`
     OPENSSL_PLATFORM="darwin64-$ARCH-cc -mmacosx-version-min=10.15"
     SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
@@ -54,11 +62,11 @@ elif [ `uname -s` = "Darwin" ]; then
     EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
 elif [ `uname -o` = "Msys" ]; then
     PLATFORM=windows
-    BUILD_NDI=0
+    BUILD_SRT=1
     BUILD_SDL2=1
-    BUILD_X264=0
+    BUILD_AMF=1
+    BUILD_MFX=1
     BUILD_OPENSSL=1
-    BUILD_NVENC=0
     OPENSSL_PLATFORM=mingw64
 else
     echo "Unsupported platform.  Cannot continue"
@@ -101,7 +109,8 @@ if [ $BUILD_X264 -eq 1 ]; then
     ENABLE_X264="--enable-libx264"
 fi
 
-if [ ! -d srt ]; then
+if [ $BUILD_SRT -eq 1 ]; then
+    if [ ! -d srt ]; then
 	git clone $SRT_REPO srt
 	cd srt
 	if [ "$SRT_BRANCH" != "" ]; then
@@ -133,6 +142,8 @@ if [ ! -d srt ]; then
 	    make install
 	fi
 	cd ..
+    fi
+    ENABLE_SRT="--enable-libsrt"
 fi
 
 if [ $BUILD_SDL2 -eq 1 ]; then
@@ -167,8 +178,12 @@ fi
 
 if [ $BUILD_NVENC -eq 1 ]; then
     if [ ! -d nv-codec-headers ]; then
-	git -c http.sslVerify=false clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+	git -c http.sslVerify=false clone $NVENC_REPO
 	cd nv-codec-headers
+	if [ "$NVENC_BRANCH" != "" ]; then
+	    echo "Switching to branch [$NVENC_BRANCH]..."
+	    git checkout $NVENC_BRANCH
+	fi
 	make install PREFIX=$DEP_BUILDROOT
 	cd ..
     fi
@@ -207,9 +222,9 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC --enable-libsrt"
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC $ENABLE_SRT"
 
-if [ $PLATFORM = "windows" ]; then
+if [ $BUILD_MFX -eq 1 ]; then
     # Intel hardware acceleration
     if [ ! -d mfx_dispatch ] ; then
 	mkdir -p $DEP_BUILDROOT/include/mfx
@@ -223,15 +238,25 @@ if [ $PLATFORM = "windows" ]; then
 	cd ..
     fi
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-libmfx"
+fi
 
+if [ $BUILD_AMF -eq 1 ]; then
     # AMD hardware acceleration
     if [ ! -d AMF ] ; then
-	git clone  https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+	git clone $AMF_REPO
+	if [ "$AMF_BRANCH" != "" ]; then
+	    echo "Switching to branch [$AMF_BRANCH]..."
+	    cd AMF
+	    git checkout $AMF_BRANCH
+	    cd ..
+	fi
 	mkdir -p ${DEP_BUILDROOT}/include/AMF
 	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
     fi
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-amf"
-elif [ $PLATFORM = "macos" ]; then
+fi
+
+if [ $PLATFORM = "macos" ]; then
     EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-videotoolbox --enable-audiotoolbox"
 fi
 
