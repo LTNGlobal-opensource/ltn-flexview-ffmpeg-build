@@ -60,6 +60,7 @@ elif [ `uname -s` = "Darwin" ]; then
     SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
     EXTRA_CFLAGS="-arch $ARCH -target $ARCH-apple-darwin10.15 -mmacosx-version-min=10.15 -I${SDK_PATH}/usr/include"
     EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
+    ENABLE_APPLE_HWACCEL="--enable-videotoolbox --enable-audiotoolbox"
 elif [ `uname -o` = "Msys" ]; then
     PLATFORM=windows
     BUILD_SRT=1
@@ -190,6 +191,38 @@ if [ $BUILD_NVENC -eq 1 ]; then
     ENABLE_NVENC="--enable-ffnvcodec --enable-nvenc --enable-nvdec"
 fi
 
+if [ $BUILD_MFX -eq 1 ]; then
+    # Intel hardware acceleration
+    if [ ! -d mfx_dispatch ] ; then
+	mkdir -p $DEP_BUILDROOT/include/mfx
+	mkdir -p $DEP_BUILDROOT/lib
+	git clone https://github.com/lu-zero/mfx_dispatch.git
+	cd mfx_dispatch/
+	autoreconf -i
+	./configure --prefix=$DEP_BUILDROOT
+	make -j4
+	make install
+	cd ..
+    fi
+    ENABLE_MFX="--enable-libmfx"
+fi
+
+if [ $BUILD_AMF -eq 1 ]; then
+    # AMD hardware acceleration
+    if [ ! -d AMF ] ; then
+	git clone $AMF_REPO
+	if [ "$AMF_BRANCH" != "" ]; then
+	    echo "Switching to branch [$AMF_BRANCH]..."
+	    cd AMF
+	    git checkout $AMF_BRANCH
+	    cd ..
+	fi
+	mkdir -p ${DEP_BUILDROOT}/include/AMF
+	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
+    fi
+    ENABLE_AMF="$EXTERNAL_DEPS --enable-amf"
+fi
+
 # Clone ffmpeg
 if [ ! -d ffmpeg-ltn ]; then
 	git clone $FFMPEG_REPO ffmpeg-ltn
@@ -203,7 +236,7 @@ fi
 
 # Make sure we don't end up with a bunch of extra deps for stuff like X11, ALSA, etc...
 # Note: lavfi is needed for FATE testing, even though we don't need it in production deployment
-LIBAVDEVICE_OPTS="--disable-devices"
+LIBAVDEVICE_OPTS="--disable-devices --enable-indev=lavfi"
 
 # Tests which are known to fail FATE in our current build (which we don't care about)
 FATE_IGNORE_OPTS="--ignore-tests=rgb24-mkv"
@@ -222,43 +255,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC $ENABLE_SRT"
-
-if [ $BUILD_MFX -eq 1 ]; then
-    # Intel hardware acceleration
-    if [ ! -d mfx_dispatch ] ; then
-	mkdir -p $DEP_BUILDROOT/include/mfx
-	mkdir -p $DEP_BUILDROOT/lib
-	git clone https://github.com/lu-zero/mfx_dispatch.git
-	cd mfx_dispatch/
-	autoreconf -i
-	./configure --prefix=$DEP_BUILDROOT
-	make -j4
-	make install
-	cd ..
-    fi
-    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-libmfx"
-fi
-
-if [ $BUILD_AMF -eq 1 ]; then
-    # AMD hardware acceleration
-    if [ ! -d AMF ] ; then
-	git clone $AMF_REPO
-	if [ "$AMF_BRANCH" != "" ]; then
-	    echo "Switching to branch [$AMF_BRANCH]..."
-	    cd AMF
-	    git checkout $AMF_BRANCH
-	    cd ..
-	fi
-	mkdir -p ${DEP_BUILDROOT}/include/AMF
-	cp -a AMF/amf/public/include/* ${DEP_BUILDROOT}/include/AMF
-    fi
-    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-amf"
-fi
-
-if [ $PLATFORM = "macos" ]; then
-    EXTERNAL_DEPS="$EXTERNAL_DEPS --enable-videotoolbox --enable-audiotoolbox"
-fi
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC $ENABLE_SRT $ENABLE_MFX $ENABLE_AMF $ENABLE_APPLE_HWACCEL"
 
 cd ffmpeg-ltn
 ./configure --disable-doc --enable-gpl --enable-nonfree --enable-debug $EXTERNAL_DEPS --pkg-config-flags=--static --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS" $LIBAVDEVICE_OPTS $FATE_IGNORE_OPTS
