@@ -22,7 +22,7 @@ Encoding Support:
 |Nvidia NVENC |   X   |        |        |
 |X264         |   X   |        |   X    |
 
-Features not found in standard upstream program:
+Features not found in upstream ffmpeg project:
 * Backport of "UDP monitor" feedback
 * TS statistics made available via UDP monitor for both SRT and UDP inputs (total bitrate, Per pid stats for CC count, packets received)
 * SRT statistics made available via UDP monitor (various stats related to ARQ, packet loss rates, window sizes, etc)
