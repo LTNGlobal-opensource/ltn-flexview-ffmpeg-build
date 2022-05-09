@@ -30,6 +30,8 @@ Features not found in upstream ffmpeg project:
 
 Future Enhancements proposed:
 * Backport Captioning fixes from LTED ffmpeg tree
+* Backport burnreader/burnwriter support from LTED ffmpeg tree
+* Backport interlaced HEVC support from LTED ffmpeg tree
 * Merge NDI support patch into tree
 * Blackmagic SDI input/output support
 * Passthrough of SCTE-35/SMPTE 2038 streams
