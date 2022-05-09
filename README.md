@@ -33,3 +33,4 @@ Future Enhancements proposed:
 * Merge NDI support patch into tree
 * Blackmagic SDI input/output support
 * Passthrough of SCTE-35/SMPTE 2038 streams
+* Get X264 building on MacOS platform
