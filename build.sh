@@ -6,7 +6,7 @@ set -x
 set -e
 
 [ -z "$FFMPEG_REPO" ] && FFMPEG_REPO=https://github.com/LTNGlobal-opensource/FFmpeg-ltn.git
-[ -z "$FFMPEG_BRANCH" ] && FFMPEG_BRANCH=n4.4.1-ltn-flexview1-0.2
+[ -z "$FFMPEG_BRANCH" ] && FFMPEG_BRANCH=n4.4.1-ltn-flexview1-djhac4
 
 # Dependencies
 [ -z "$SRT_REPO" ] && SRT_REPO=https://github.com/Haivision/srt.git
@@ -16,6 +16,9 @@ set -e
 [ -z "$FREETYPE2_BRANCH" ] && FREETYPE2_BRANCH=VER-2-9-1
 [ -z "$OPENSSL_REPO" ] && OPENSSL_REPO=https://github.com/openssl/openssl.git
 [ -z "$OPENSSL_BRANCH" ] && OPENSSL_BRANCH=OpenSSL_1_1_1n
+[ -z "$LIBXML2_REPO" ] && LIBXML2_REPO=https://gitlab.gnome.org/GNOME/libxml2.git
+[ -z "$LIBXML2_BRANCH" ] && LIBXML2_BRANCH=v2.9.14
+
 [ -z "$SDL2_REPO" ] && SDL2_REPO=https://github.com/libsdl-org/SDL.git
 [ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.20
 [ -z "$NVENC_REPO" ] && NVENC_REPO=https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
@@ -39,6 +42,7 @@ BUILD_SRT=0
 BUILD_SDL2=0
 BUILD_X264=0
 BUILD_OPENSSL=0
+BUILD_LIBXML2=0
 BUILD_NVENC=0
 BUILD_AMF=0
 BUILD_MFX=0
@@ -55,12 +59,14 @@ elif [ `uname -s` = "Darwin" ]; then
     BUILD_SRT=1
     BUILD_SDL2=1
     BUILD_OPENSSL=1
+    BUILD_LIBXML2=1
     ARCH=`uname -m`
     OPENSSL_PLATFORM="darwin64-$ARCH-cc -mmacosx-version-min=10.15"
     SDK_PATH=`xcrun --sdk macosx --show-sdk-path`
     EXTRA_CFLAGS="-arch $ARCH -target $ARCH-apple-darwin10.15 -mmacosx-version-min=10.15 -I${SDK_PATH}/usr/include"
     EXTRA_LDFLAGS="-arch $ARCH -march=$ARCH -target $ARCH-apple-darwin10.15 -isysroot ${SDK_PATH} -mmacosx-version-min=10.15"
     ENABLE_APPLE_HWACCEL="--enable-videotoolbox --enable-audiotoolbox"
+    LIBXML2_CFLAGS="-mmacosx-version-min=10.15"
 elif [ `uname -o` = "Msys" ]; then
     PLATFORM=windows
     BUILD_SRT=1
@@ -93,6 +99,24 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
 	make install_sw
 	cd ..
     fi
+fi
+
+if [ $BUILD_LIBXML2 -eq 1 ]; then
+    if [ ! -d libxml2 ]; then
+	git clone $LIBXML2_REPO
+	cd libxml2
+	if [ "$LIBXML2_BRANCH" != "" ]; then
+	    echo "Switching to branch [$LIBXML2_BRANCH]..."
+	    git checkout $LIBXML2_BRANCH
+	fi
+
+	./autogen.sh
+	CFLAGS="${LIBXML2_CFLAGS}" ./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	make -j4
+	make install
+	cd ..
+    fi
+    ENABLE_LIBXML2="--enable-libxml2"
 fi
 
 if [ $BUILD_X264 -eq 1 ]; then
@@ -256,7 +280,7 @@ if [ $BUILD_OPENSSL -eq 1 ]; then
     ENABLE_OPENSSL="--enable-openssl"
 fi
 
-EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_X264 $ENABLE_NVENC $ENABLE_SRT $ENABLE_MFX $ENABLE_AMF $ENABLE_APPLE_HWACCEL"
+EXTERNAL_DEPS="--disable-autodetect $ENABLE_OPENSSL $ENABLE_NDI $ENABLE_SDL2 $ENABLE_LIBXML2 $ENABLE_X264 $ENABLE_NVENC $ENABLE_SRT $ENABLE_MFX $ENABLE_AMF $ENABLE_APPLE_HWACCEL"
 
 cd ffmpeg-ltn
 ./configure --disable-doc --enable-gpl --enable-nonfree --enable-debug $EXTERNAL_DEPS --pkg-config-flags=--static --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS" $LIBAVDEVICE_OPTS $FATE_IGNORE_OPTS
