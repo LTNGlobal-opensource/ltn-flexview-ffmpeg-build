@@ -17,7 +17,7 @@ set -e
 [ -z "$OPENSSL_REPO" ] && OPENSSL_REPO=https://github.com/openssl/openssl.git
 [ -z "$OPENSSL_BRANCH" ] && OPENSSL_BRANCH=OpenSSL_1_1_1n
 [ -z "$LIBXML2_REPO" ] && LIBXML2_REPO=https://gitlab.gnome.org/GNOME/libxml2.git
-[ -z "$LIBXML2_BRANCH" ] && LIBXML2_BRANCH=v2.9.14
+[ -z "$LIBXML2_BRANCH" ] && LIBXML2_BRANCH=v2.9.13
 
 [ -z "$SDL2_REPO" ] && SDL2_REPO=https://github.com/libsdl-org/SDL.git
 [ -z "$SDL2_BRANCH" ] && SDL2_BRANCH=release-2.0.20
@@ -50,6 +50,7 @@ BUILD_MFX=0
 if [ `uname -s` = "Linux" ]; then
     PLATFORM=linux
     BUILD_SRT=1
+    BUILD_LIBXML2=1
     BUILD_X264=1
     BUILD_NVENC=1
     BUILD_OPENSSL=1
@@ -111,7 +112,7 @@ if [ $BUILD_LIBXML2 -eq 1 ]; then
 	fi
 
 	./autogen.sh
-	CFLAGS="${LIBXML2_CFLAGS}" ./configure --prefix=${DEP_BUILDROOT} --disable-shared
+	CFLAGS="${LIBXML2_CFLAGS}" ./configure --prefix=${DEP_BUILDROOT} --disable-shared --without-python
 	make -j4
 	make install
 	cd ..
